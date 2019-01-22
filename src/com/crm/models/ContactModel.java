@@ -3,6 +3,8 @@
  */
 package com.crm.models;
 
+import java.sql.SQLException;
+
 import com.crm.models.interfaces.CheckClass;
 
 /**
@@ -12,22 +14,24 @@ import com.crm.models.interfaces.CheckClass;
 @Table(name="contacts")
 public class ContactModel extends Model implements CheckClass, Comparable<ContactModel> {
 	
-	@Column(name="name", type="string")
+	
 	protected String name;
 	
 	protected String forname;
 	
 	protected String civility;
 	
+	@OneToMany(name="companies")
 	protected CompanyModel company;
 	
-	public ContactModel(Repository repository) {
+	public ContactModel(Repository repository) throws SQLException {
 		super(repository);
 	}
 	
 	// Getters and setters
 	public ContactModel id(int id) {
 		this.id= id;
+
 		return this;
 	}
 	

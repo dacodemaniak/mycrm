@@ -1,5 +1,6 @@
 package com.crm.models;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 import com.crm.models.interfaces.CheckClass;
@@ -10,6 +11,9 @@ import com.crm.models.interfaces.CheckClass;
  * 	Définition des sociétés
  *
  */
+
+@Table(name="companies")
+
 public class CompanyModel extends Model implements CheckClass {
 	protected String name;
 	protected String address;
@@ -23,8 +27,9 @@ public class CompanyModel extends Model implements CheckClass {
 	 * Le constructeur parent (super) se charge de me calculer
 	 * automatiquement la valeur de entityName
 	 * @param repository
+	 * @throws SQLException 
 	 */
-	public CompanyModel(Repository repository) {
+	public CompanyModel(Repository repository) throws SQLException {
 		super(repository);
 	}
 	
@@ -123,6 +128,17 @@ public class CompanyModel extends Model implements CheckClass {
 		return this.city;
 	}
 
+	public String listContacts() {
+		String list = "";
+		// Boucle sur la liste des contacts
+		for (ContactModel contact : this.contacts) {
+			list += "Civilité : " + contact.civility() + "\n";
+			list += "Nom : " + contact.name() + "\n";
+			list += "Prénom : " + contact.forname() + "\n";
+		}
+		return list;
+	}
+	
 	@Override
 	public String check() {
 		return "Nb. contacts : " + 

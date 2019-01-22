@@ -3,6 +3,7 @@
  */
 package com.crm.models;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 
 /**
@@ -14,7 +15,7 @@ public interface ModelInterface<T> {
 	
 	public HashMap<Integer, T> find();
 	
-	public T persist();
+	public T persist() throws IllegalArgumentException, IllegalAccessException, SQLException;
 	
 	public boolean remove();
 }

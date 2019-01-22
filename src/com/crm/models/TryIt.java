@@ -3,6 +3,12 @@
  */
 package com.crm.models;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import com.crm.dao.MySQLConnect;
+
 /**
  * @author jean-
  *
@@ -11,19 +17,31 @@ public class TryIt {
 
 	/**
 	 * @param args
+	 * @throws SQLException 
+	 * @throws IllegalAccessException 
+	 * @throws IllegalArgumentException 
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IllegalArgumentException, IllegalAccessException, SQLException {
+		
+		// Tester la connexion MySQL
+		 // Singleton de connexion
+		/**
+		try {
+			MySQLConnect connection = new MySQLConnect();
+		} catch(SQLException e) {
+			System.out.println("Une erreur est survenue : " + e.getMessage());
+		}
+		**/
+		
 		Repository companyRepository = new Repository();
 		
 		// Tentative d'instanciation d'une compagnie
 		CompanyModel aelion = new CompanyModel(companyRepository)
 				.id(1)
-				.address("95, chemin de Gabardie")
+				.address("10, Place du Capitole")
 				.city("Toulouse")
 				.zipcode("31000")
-				.name("Aélion");
-		// Tester la persistence
-		aelion.persist();
+				.name("Airbus'One");
 		
 		// INSERT INTO companys (id, address, city, zipcode, name)
 		// VALUES (1, '95, chemin de Gabardie', 'Toulouse', '31000', 'Aélion');
@@ -37,51 +55,36 @@ public class TryIt {
 				.city("New-York")
 				.zipcode("00001")
 				.name("World Company");
-		worldCompany.persist();
-		try {
-			System.out.println(worldCompany.insert());
-		} catch(Exception e) {
-			System.out.println("An error occured " + e.getMessage());
-		}
 		
 		// INSERT INTO companys (id, address, city, zipcode, name)
 		// VALUES (2, '21 Jump Street', 'New-York', '00001', 'World Company');
-		
-		// Tester le find...
-		System.out.println("Société créée : " + companyRepository.find(1).name());
 		
 		Repository contactRepository = new Repository();
 		ContactModel moi = new ContactModel(contactRepository)
 				.name("Aubert")
 				.forname("Jean-Luc")
-				.civility("Mr");
+				.civility("Mr")
+				.company(aelion);
 		
 		aelion.addContact(moi);
-		moi.persist();
-		
-		
-		try {
-			System.out.println(moi.insert());
-		} catch(Exception e) {
-			System.out.println("An error occured : " + e.getMessage());
-		}
-		
-		// Tester un SELECT sur les compagnies
-		System.out.println(moi.select());
 		
 		ContactModel lui = new ContactModel(contactRepository)
 			.name("Aubert")
 			.forname("Clélie")
-			.civility("Mlle");
+			.civility("Mlle")
+			.company(worldCompany);
 		
-		aelion.addContact(lui);
-		lui.persist();
+		worldCompany.addContact(lui);
 		
 		if (moi.compareTo(lui) == 0) {
 			System.out.println("A priori, ce sont les mêmes noms");
 		}
 		
 		System.out.println(aelion.check() + " " + moi.check());
+		
+		// A la fin...
+		aelion.persist();
+		worldCompany.persist();
 
 	}
 
