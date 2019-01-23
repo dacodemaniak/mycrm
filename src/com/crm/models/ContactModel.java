@@ -12,6 +12,8 @@ import com.crm.models.interfaces.CheckClass;
  * @version 1.0.0
  */
 @Table(name="contacts")
+@ManyToOne(name="company")
+
 public class ContactModel extends Model implements CheckClass, Comparable<ContactModel> {
 	
 	
@@ -22,7 +24,7 @@ public class ContactModel extends Model implements CheckClass, Comparable<Contac
 	protected String civility;
 	
 	@OneToMany(name="companies")
-	protected CompanyModel company;
+	protected Model company;
 	
 	public ContactModel(Repository repository) throws SQLException {
 		super(repository);
@@ -50,7 +52,8 @@ public class ContactModel extends Model implements CheckClass, Comparable<Contac
 		return this;
 	}
 	
-	public ContactModel company(CompanyModel company) {
+	
+	public ContactModel company(Model company) {
 		this.company = company;
 		return this;
 	}
@@ -71,7 +74,7 @@ public class ContactModel extends Model implements CheckClass, Comparable<Contac
 		return this.civility;
 	}
 	
-	public CompanyModel company() {
+	public Model company() {
 		return this.company;
 	}
 	

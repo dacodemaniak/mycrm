@@ -5,10 +5,14 @@ package com.crm.models;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.crm.dao.MySQLConnect;
@@ -45,6 +49,17 @@ public abstract class Model implements ModelInterface<Model> {
 	protected PreparedStatement insert;
 	
 	/**
+	 * Collectionner tous les attributs des classes de type ArrayList<Model>
+	 */
+	private ArrayList<Field> collections = new ArrayList<Field>();
+	
+	/**
+	 * Instance de requête préparée :
+	 * SELECT id FROM [entityName] ORDER BY id DESC LIMIT 0,1
+	 */
+	protected PreparedStatement lastId;
+	
+	/**
 	 * Constructeur avec DI (Dependency Injection / Injection de dépendance)
 	 * @param repository
 	 * @throws SQLException 
@@ -58,6 +73,9 @@ public abstract class Model implements ModelInterface<Model> {
 		
 		// Préparer toutes les requêtes...
 		this.insert = this.preparedInsert();
+		this.lastId = this.lastId();
+		
+		this.hasModelCollection();
 	}
 
 	
@@ -110,7 +128,51 @@ public abstract class Model implements ModelInterface<Model> {
 			indice++; // Ne pas oublier d'incrémenter le compteur...
 		}
 		// 2. Enfin... exécuter la requête finalisée
+		System.out.println("Requête : " + query.toString());
 		query.executeUpdate();
+		
+		// 3. Dans tous les cas, on ne sait jamais, récupère le dernier id
+		ResultSet res = this.lastId.executeQuery();
+		if (res.first()) {
+			System.out.println("Récupère le dernier id");
+			int lastId = res.getInt("id");
+			// Ne pas oublier de définir l'id du modèle
+			this.id = lastId;
+			if (this.collections.size() > 0) {
+				// So what ?
+				for (Field field : this.collections) {
+					System.out.println("Boucle sur les collections");
+					// Récupérer la valeur de ce field
+					ArrayList<Model> values = (ArrayList<Model>) field.get(this);
+					// Boucler sur les valeurs... et faire le job
+					for (Model value : values) {
+						//
+						ManyToOne method = value.getClass().getAnnotation(ManyToOne.class);
+						
+						System.out.println("La méthode : "  + method.name());
+						
+						// Récupérer la méthode à partir de la classe
+						try {
+							Method manyToOne = value.getClass().getDeclaredMethod(method.name(), Model.class);
+							// Invoquer la méthode en lui passant les paramètres éventuels
+							try {
+								manyToOne.invoke(value, this);
+								value.persist();
+							} catch (InvocationTargetException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						} catch (NoSuchMethodException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (SecurityException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		}
 		
 		return this;
 	}
@@ -150,6 +212,23 @@ public abstract class Model implements ModelInterface<Model> {
 		
 		return statement;
 	}
+	
+	private PreparedStatement lastId() {
+		String query = "SELECT id FROM " + this.entityName + " ORDER BY id DESC LIMIT 0,1";
+		try {
+			return this.connexion.prepareStatement(query);
+		} catch(SQLException e) {
+			System.out.println("Erreur de préparation de requête : " + query + "[" + e.getMessage() + "]");
+			return null;
+		}
+	}
+	
+	/**
+	 * @obsolete
+	 * @return String
+	 * @throws IllegalArgumentException
+	 * @throws IllegalAccessException
+	 */
 	public String insert() throws IllegalArgumentException, IllegalAccessException {
 		String query = "INSERT INTO " + this.entityName + "(" + this._getAttributes() + ") VALUES (" +
 				this._getValues() + ");";
@@ -234,12 +313,12 @@ public abstract class Model implements ModelInterface<Model> {
 					try {
 						/**
 						 * Way 1 :  passer par une annotation
-						 
+						*/
 						OneToMany annotation = field.getAnnotation(OneToMany.class);
 						
 						allColumns += annotation.name() + "_id,";
-						*/
 						
+						/**
 						// Way 2 : reflexion sur l'objet
 						Class<? extends Model> parentClass = (Class<? extends Model>) field.getType();
 						// On peut accéder aux annotations ?
@@ -282,6 +361,19 @@ public abstract class Model implements ModelInterface<Model> {
 			}
 		}
 		return allValues.substring(0, allValues.length() - 1);		
+	}
+	
+	private void hasModelCollection() {
+		for (Field field : this.getClass().getDeclaredFields()) {
+			if (
+					field.getGenericType().getTypeName().contains("ArrayList") &&
+					field.getGenericType().getTypeName().contains("Model")
+				) {
+				// YES... y en a bien un
+				// L'ajouter à la collection
+				this.collections.add(field);
+			}
+		}
 	}
 	
 }
