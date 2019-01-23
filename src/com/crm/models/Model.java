@@ -67,6 +67,7 @@ public abstract class Model implements ModelInterface<Model> {
 	public Model(Repository repository) throws SQLException {
 		
 		this.entityName = this._getEntityName();
+		
 		this.repository = repository;
 		
 		this.connexion = MySQLConnect.getConnexion();
@@ -133,11 +134,18 @@ public abstract class Model implements ModelInterface<Model> {
 		
 		// 3. Dans tous les cas, on ne sait jamais, récupère le dernier id
 		ResultSet res = this.lastId.executeQuery();
+		
+
+		
 		if (res.first()) {
 			System.out.println("Récupère le dernier id");
 			int lastId = res.getInt("id");
+
 			// Ne pas oublier de définir l'id du modèle
 			this.id = lastId;
+			// Au passage, on ajoute au Repository
+			this.repository.put(this);
+			
 			if (this.collections.size() > 0) {
 				// So what ?
 				for (Field field : this.collections) {
@@ -146,7 +154,7 @@ public abstract class Model implements ModelInterface<Model> {
 					ArrayList<Model> values = (ArrayList<Model>) field.get(this);
 					// Boucler sur les valeurs... et faire le job
 					for (Model value : values) {
-						//
+						// Récupérer la méthode concernée (celle qui va injecter CompanyModel dans ContactModel)
 						ManyToOne method = value.getClass().getAnnotation(ManyToOne.class);
 						
 						System.out.println("La méthode : "  + method.name());
@@ -182,7 +190,7 @@ public abstract class Model implements ModelInterface<Model> {
 	 */
 	@Override
 	public boolean remove() {
-		return this.repository.remove(this.id);
+		return false;
 	}
 	
 	/**

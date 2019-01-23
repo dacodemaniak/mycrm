@@ -58,6 +58,7 @@ public class TryIt {
 		aelion.persist();
 		worldCompany.persist();
 
+		
 	}
 
 }
