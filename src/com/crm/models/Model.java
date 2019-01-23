@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.crm.dao.MySQLConnect;
+import com.crm.models.strategy.DeleteNothing;
+import com.crm.models.strategy.DeleteStrategyInterface;
 
 /**
  * @author Aélion
@@ -59,6 +61,13 @@ public abstract class Model implements ModelInterface<Model> {
 	 */
 	protected PreparedStatement lastId;
 	
+	protected PreparedStatement deleteStatement;
+	
+	/**
+	 * Stratégie de suppression à adopter
+	 */
+	private DeleteStrategyInterface deleteStrategy;
+	
 	/**
 	 * Constructeur avec DI (Dependency Injection / Injection de dépendance)
 	 * @param repository
@@ -75,10 +84,17 @@ public abstract class Model implements ModelInterface<Model> {
 		// Préparer toutes les requêtes...
 		this.insert = this.preparedInsert();
 		this.lastId = this.lastId();
+		this.deleteStatement = this.preparedDelete();
+		
+		// Stratégie par défaut pour les suppressions : DeleteNothing
+		this.deleteStrategy = new DeleteNothing();
 		
 		this.hasModelCollection();
 	}
 
+	public void setDeleteStrategy(DeleteStrategyInterface deleteStrategy) {
+		this.deleteStrategy = deleteStrategy;
+	}
 	
 	public String toString() {
 		String reflexion = "Nom de l'entité : " + this.entityName + "\n";
@@ -95,6 +111,8 @@ public abstract class Model implements ModelInterface<Model> {
 	}
 
 	abstract public String name();
+	
+	abstract public int id();
 	
 	/* (non-Javadoc)
 	 * @see com.crm.models.ModelInterface#find()
@@ -129,7 +147,7 @@ public abstract class Model implements ModelInterface<Model> {
 			indice++; // Ne pas oublier d'incrémenter le compteur...
 		}
 		// 2. Enfin... exécuter la requête finalisée
-		System.out.println("Requête : " + query.toString());
+		//System.out.println("Requête : " + query.toString());
 		query.executeUpdate();
 		
 		// 3. Dans tous les cas, on ne sait jamais, récupère le dernier id
@@ -138,7 +156,7 @@ public abstract class Model implements ModelInterface<Model> {
 
 		
 		if (res.first()) {
-			System.out.println("Récupère le dernier id");
+			//System.out.println("Récupère le dernier id");
 			int lastId = res.getInt("id");
 
 			// Ne pas oublier de définir l'id du modèle
@@ -149,7 +167,7 @@ public abstract class Model implements ModelInterface<Model> {
 			if (this.collections.size() > 0) {
 				// So what ?
 				for (Field field : this.collections) {
-					System.out.println("Boucle sur les collections");
+					//System.out.println("Boucle sur les collections");
 					// Récupérer la valeur de ce field
 					ArrayList<Model> values = (ArrayList<Model>) field.get(this);
 					// Boucler sur les valeurs... et faire le job
@@ -157,7 +175,7 @@ public abstract class Model implements ModelInterface<Model> {
 						// Récupérer la méthode concernée (celle qui va injecter CompanyModel dans ContactModel)
 						ManyToOne method = value.getClass().getAnnotation(ManyToOne.class);
 						
-						System.out.println("La méthode : "  + method.name());
+						//System.out.println("La méthode : "  + method.name());
 						
 						// Récupérer la méthode à partir de la classe
 						try {
@@ -190,6 +208,42 @@ public abstract class Model implements ModelInterface<Model> {
 	 */
 	@Override
 	public boolean remove() {
+		try {
+			this.deleteStatement.setInt(1, this.id);
+			// Hola, on vérifie avant qu'il n'y ait pas des enfants
+			if (this.collections.size() == 0) {
+				this.deleteStatement.executeUpdate();
+				return true;				
+			} else {
+				// En fonction de la stratégie définie
+				if (this.deleteStrategy instanceof DeleteNothing) {
+					return false;
+				} else {
+					for (Field field : this.collections) {
+						try {
+							ArrayList<Model> values = (ArrayList<Model>) field.get(this);
+							for (Model model : values) {
+								model.remove();
+							}
+							this.deleteStatement.executeUpdate();
+							return true;
+						} catch (IllegalArgumentException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (IllegalAccessException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						
+					}
+				}
+			}
+
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
 		return false;
 	}
 	
@@ -199,6 +253,11 @@ public abstract class Model implements ModelInterface<Model> {
 	 */
 	public String select() {
 		return "SELECT " + this._getAttributes() + " FROM " + this.entityName + ";";
+	}
+	
+	private PreparedStatement preparedDelete() throws SQLException {
+		String query = "DELETE FROM " + this.entityName + " WHERE id=?;";
+		return this.connexion.prepareStatement(query);
 	}
 	
 	private PreparedStatement preparedInsert() throws SQLException {
@@ -216,7 +275,7 @@ public abstract class Model implements ModelInterface<Model> {
 		
 		PreparedStatement statement = this.connexion.prepareStatement(query);
 		
-		System.out.println("Requête préparée : " + query);
+		//System.out.println("Requête préparée : " + query);
 		
 		return statement;
 	}
@@ -352,7 +411,7 @@ public abstract class Model implements ModelInterface<Model> {
 				}
 			}
 		}
-		System.out.println("A la fin ? " + allColumns);
+		//System.out.println("A la fin ? " + allColumns);
 		return allColumns.substring(0, allColumns.length() - 1);
 	}
 	

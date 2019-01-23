@@ -37,10 +37,13 @@ public class Repository {
 		return this.repository.containsKey((Integer) id) ? this.repository.get((Integer) id) : null;
 	}
 	
-	public boolean remove(int id) {
-		if (this.repository.containsKey((Integer) id)) {
-			this.repository.remove((Integer) id);
-			return true;
+	public boolean remove(Model model) {
+		if (this.repository.containsValue(model)) {
+			if (model.remove()) {
+				// On dégage la ligne du HashMap
+				this.repository.remove((Integer) model.id());
+				return true;
+			}
 		}
 		return false;
 	}

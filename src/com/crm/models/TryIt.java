@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.crm.dao.MySQLConnect;
+import com.crm.models.strategy.DeleteAll;
 
 /**
  * @author jean-
@@ -58,7 +59,15 @@ public class TryIt {
 		aelion.persist();
 		worldCompany.persist();
 
+		// On a quoi dans les repos ?
+		System.out.print(contactRepository.toString());
 		
+		// On va essayer de supprimer un contact
+		contactRepository.remove(lui); // Easy...
+		
+		// On essaye de supprimer une compagnie ?
+		aelion.setDeleteStrategy(new DeleteAll());
+		companyRepository.remove(aelion);
 	}
 
 }
