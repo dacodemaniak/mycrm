@@ -68,6 +68,15 @@ public class TryIt {
 		// On essaye de supprimer une compagnie ?
 		aelion.setDeleteStrategy(new DeleteAll());
 		companyRepository.remove(aelion);
+		
+		CompanyModel acme = new CompanyModel(companyRepository)
+				.name("Acme's")
+				.address("Hollywood Bd")
+				.zipcode("50000")
+				.city("Los Angeles");
+		acme.persist();
+		// Puis je veux la supprimer
+		companyRepository.remove(acme); // Pas de suppression si la stratégie est DeleteNothing
 	}
 
 }

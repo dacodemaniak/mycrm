@@ -3,14 +3,27 @@
  */
 package com.crm.models;
 
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.HashMap;
 
 /**
  * @author jean-
  *
  */
-public class Repository {
+public class Repository implements RepositoryInterface<Model>{
 	private HashMap<Integer, Model> repository = new HashMap<Integer, Model>();
+	private Model model;
+
+	public void setModel(Model model) {
+		this.model = model;
+		this._hydrate();
+	}
+	
+	public HashMap<Integer, Model> getRepository() {
+		return this.repository;
+	}
 	
 	/**
 	 * Ajoute un élément de type Model à la liste des modèles
@@ -37,6 +50,11 @@ public class Repository {
 		return this.repository.containsKey((Integer) id) ? this.repository.get((Integer) id) : null;
 	}
 	
+	/**
+	 * Méthode de suppression à partir du Repository
+	 * @param model
+	 * @return boolean
+	 */
 	public boolean remove(Model model) {
 		if (this.repository.containsValue(model)) {
 			if (model.remove()) {
@@ -55,5 +73,18 @@ public class Repository {
 			output += model.toString() + "\n";
 		}
 		return output;
+	}
+	
+	private void _hydrate() {
+		try {
+			ResultSet rs = this.model.select();
+			while(rs.next()) {
+				this.put(this.model.hydrate(rs));
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 }

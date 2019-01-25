@@ -1,5 +1,9 @@
 package com.crm.models;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -33,6 +37,7 @@ public class CompanyModel extends Model implements CheckClass {
 		super(repository);
 	}
 	
+	public CompanyModel() {}
 	/**
 	 * Définit l'identifiant de la société
 	 * @param id
@@ -128,6 +133,33 @@ public class CompanyModel extends Model implements CheckClass {
 		return this.city;
 	}
 
+	public CompanyModel hydrate(ResultSet row) throws NoSuchMethodException, SecurityException, SQLException {
+		CompanyModel company = new CompanyModel();
+		company.id(row.getInt(1));
+		int indice = 2;
+		for (Field field : this.getClass().getDeclaredFields()) {
+			if (
+				!field.getGenericType().getTypeName().contains("ArrayList") &&
+				!field.getGenericType().getTypeName().contains("Model")
+			) {
+				Method method = this.getClass().getDeclaredMethod(field.getName(), field.getType());
+				try {
+					method.invoke(company, row.getString(indice));
+				} catch (IllegalAccessException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				indice++;
+			}
+		}
+		return company;
+	}
 	public String listContacts() {
 		String list = "";
 		// Boucle sur la liste des contacts
@@ -145,5 +177,11 @@ public class CompanyModel extends Model implements CheckClass {
 				this.contacts.size() + 
 				"\n[Entité courante : " 
 				+ this.entityName + "]";
+	}
+	
+	public String toString() {
+		return "Id : " + this.id + "\n" +
+				"Nom : " + this.name + "\n" +
+				"Ville : " + this.city;
 	}
 }

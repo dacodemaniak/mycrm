@@ -92,6 +92,11 @@ public abstract class Model implements ModelInterface<Model> {
 		this.hasModelCollection();
 	}
 
+	public Model() {}
+	public Repository getRepository() {
+		return this.repository;
+	}
+	
 	public void setDeleteStrategy(DeleteStrategyInterface deleteStrategy) {
 		this.deleteStrategy = deleteStrategy;
 	}
@@ -153,8 +158,6 @@ public abstract class Model implements ModelInterface<Model> {
 		// 3. Dans tous les cas, on ne sait jamais, récupère le dernier id
 		ResultSet res = this.lastId.executeQuery();
 		
-
-		
 		if (res.first()) {
 			//System.out.println("Récupère le dernier id");
 			int lastId = res.getInt("id");
@@ -209,7 +212,8 @@ public abstract class Model implements ModelInterface<Model> {
 	@Override
 	public boolean remove() {
 		try {
-			this.deleteStatement.setInt(1, this.id);
+			this.deleteStatement.setInt(1, this.id); // Affecte la valeur de l'identifiant
+			
 			// Hola, on vérifie avant qu'il n'y ait pas des enfants
 			if (this.collections.size() == 0) {
 				this.deleteStatement.executeUpdate();
@@ -217,6 +221,12 @@ public abstract class Model implements ModelInterface<Model> {
 			} else {
 				// En fonction de la stratégie définie
 				if (this.deleteStrategy instanceof DeleteNothing) {
+					// Okay, mais si jamais je n'ai aucun enfant
+					// Pourquoi je ne pourrais pas supprimer ? hein ?
+					if (!this._hasChildren()) {
+						this.deleteStatement.executeUpdate();
+						return true;
+					}
 					return false;
 				} else {
 					for (Field field : this.collections) {
@@ -234,7 +244,6 @@ public abstract class Model implements ModelInterface<Model> {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-						
 					}
 				}
 			}
@@ -250,10 +259,14 @@ public abstract class Model implements ModelInterface<Model> {
 	/**
 	 * Génère une requête de type SELECT sur un modèle
 	 * @return String
+	 * @throws SQLException 
 	 */
-	public String select() {
-		return "SELECT " + this._getAttributes() + " FROM " + this.entityName + ";";
+	public ResultSet select() throws SQLException {
+		Statement statement =  this.connexion.createStatement();
+		return statement.executeQuery("SELECT id," + this._getAttributes() + " FROM " + this.entityName + ";");
 	}
+	
+	public abstract Model hydrate(ResultSet row) throws NoSuchMethodException, SecurityException, SQLException;
 	
 	private PreparedStatement preparedDelete() throws SQLException {
 		String query = "DELETE FROM " + this.entityName + " WHERE id=?;";
@@ -441,6 +454,27 @@ public abstract class Model implements ModelInterface<Model> {
 				this.collections.add(field);
 			}
 		}
+	}
+	
+	private boolean _hasChildren() {
+		boolean hasChildren = false;
+		
+		for (Field field : this.collections) {
+			try {
+				ArrayList<Model> values = (ArrayList<Model>) field.get(this);
+				if (values.size() > 0) {
+					hasChildren = true;
+					break;
+				}
+			} catch (IllegalArgumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return hasChildren;
 	}
 	
 }
