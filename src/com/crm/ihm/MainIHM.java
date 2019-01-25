@@ -79,7 +79,7 @@ public class MainIHM extends JFrame implements ActionListener {
 
         
         for (Model company : window.companiesRepo.getRepository().values()) {
-            values.add(new String[] {((CompanyModel) company).name(),((CompanyModel) company).name(),((CompanyModel) company).city()});
+            values.add(new String[] {String.valueOf(((CompanyModel) company).id()),((CompanyModel) company).name(),((CompanyModel) company).city()});
         }
 		
         
